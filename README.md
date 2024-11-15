@@ -1,5 +1,43 @@
 ﻿# Задание 1-1 Анализ и планирование 
 
+ ### Домены и C4
+
+**Домены**
+ - Управление характеристиками дома
+- Управление устройствами
+- Управление пользователями
+- Управление телеметрией
+- Управление уведомлениями
+
+**Context**
+
+@startuml
+title SmartHome Context Diagram
+
+top to bottom direction
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Person(user, "User", "Владелец дома, юзер системы")
+Person(worker, "Worker", "Устанавливает систему, датчики")
+
+System(SmartHome, "SmartHome System", "Система умного дома, управление отоплением")
+
+System_Ext(heatingSystem, "Heating System", "Система отопления")
+System_Ext(sensor, "Temperature Sensor", "Датчики температуры")
+
+
+Rel(user, SmartHome, "Проверяет и задает температуру")
+Rel(worker,sensor,"Устанавливает датчики")
+Rel(worker,SmartHome,"Добавляет новый датчик, проверяет корректность работы")
+Rel(SmartHome,heatingSystem,"Управляет температурой в доме")
+Rel(sensor,SmartHome,"Передает показания")
+
+
+@enduml
+
+
+ 
+
 ### Анализ текущего состояния проекта
 
 **Язык программирования**
