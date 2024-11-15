@@ -11,7 +11,7 @@
 
 **Context**
 
-![Диаграмма контекста системы](./PlantUML/1-1.svg)
+![Диаграмма контекста системы](./PlantUML/1-1.png)
 
 
 
@@ -59,8 +59,8 @@
   - Управление устройствами (**devices-service**)
   - Телеметрия (**telemetry-service**)
 
-![C4 Уровень контейнеров](./PlantUML/1-2-containers.svg)
-![C4 Уровень компонентов](./PlantUML/1-2-components.svg)
+![C4 Уровень контейнеров](./PlantUML/1-2-containers.png)
+![C4 Уровень компонентов](./PlantUML/1-2-components.png)
 
 ---
 
@@ -124,98 +124,3 @@
 ![ER-диаграмма](./PlantUML/er.svg)
 
 ---
-
-# Базовая настройка
-
-## Запуск сервисов
-
-```
-docker-compose up --build
-```
-
-## Настройка Kong
-
-### Регистрация сервисов
-
-```
-curl -i -X POST http://localhost:8001/services/ \
-  --data "name=devices-service" \
-  --data "url=http://devices-service:5000"
-```
-
-### Создание маршрута
-
-```
-curl -i -X POST http://localhost:8001/services/devices-service/routes \
-  --data "paths[]=/devices" \
-  --data "strip_path=false"
-```
-
-### Регистрация второго сервиса
-
-```
-curl -i -X POST http://localhost:8001/services/ \
-  --data "name=telemetry-service" \
-  --data "url=http://telemetry-service:5001"
-```
-
-### Создание маршрута для второго сервиса
-
-```
-curl -i -X POST http://localhost:8001/services/telemetry-service/routes \
-  --data "paths[]=/telemetry" \
-  --data "strip_path=false"
-```
-
-## Проверка сервисов
-
-### Проверка **devices-service**
-
-Получение информации об устройстве:
-
-```
-curl http://localhost:8000/devices/device-1
-```
-
-Изменение состояния устройства:
-
-```
-curl -X PUT http://localhost:8000/devices/device-1/status \
-  --data '{"status": "on"}' \
-  -H "Content-Type: application/json"
-```
-
-Отправка команды устройству:
-
-```
-curl -X POST http://localhost:8000/devices/device-1/commands \
-  --data '{"command": "set_temperature", "value": 22}' \
-  -H "Content-Type: application/json"
-```
-
-### Проверка **telemetry-service**
-
-Получение последних данных телеметрии:
-
-```
-curl http://localhost:8000/telemetry/device-1/telemetry/latest
-```
-
-Получение истории телеметрии:
-
-```
-curl http://localhost:8000/telemetry/device-1/telemetry
-```
-
-## Доступ к Swagger
-
-Документация доступна по следующим URL:
-
-- **devices-service**: `http://localhost:5000/doc`
-- **telemetry-service**: `http://localhost:5001/doc`
-
-## Остановка всех сервисов
-
-```
-docker-compose down -v
-```
