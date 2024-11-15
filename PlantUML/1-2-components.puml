@@ -1,50 +1,79 @@
 @startuml
-!define C4Context
-!define C4PlantUML https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
-!includeurl C4PlantUML
+title SmartHome Component Diagram
+top to bottom direction
 
-title Smart Home System - Components Diagram
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
 
-'System container
-Container_Boundary(smartHomeSystem, "Smart Home Monolith") {
-    Component(monitoringController, "MonitoringController", "Spring REST Controller", "Handles user interactions for monitoring devices and telemetry")
-    Component(kafkaProducer, "KafkaProducer", "Kafka Producer", "Publishes commands and requests to Kafka")
-    Component(kafkaConsumerMonolith, "KafkaConsumer", "Kafka Consumer", "Consumes telemetry and device state updates from Kafka")
-    Component(telemetryUI, "TelemetryUI", "UI Component", "Displays telemetry data to users")
-    Component(deviceControlUI, "DeviceControlUI", "UI Component", "Manages device control commands from users")
+
+System_Boundary(SmartHome, "SmartHome System") {
+  Container(WebApps, "Web Application", "", "Обрабатывает запросы, взаимодействует с User")
+  Container(User, "User", "", "Управление Юзерами")
+  Container(Home, "Home", "", "Управление характеристиками дома")
+  Container(Device, "Device", "", "Управление устройствами")
+  Container(Telemetry, "Telemetry", "", "Управление телеметрией")
+  Container(AlertIn, "Alert", "", "Управление уведомлениями")
+  Component_Ext(ApiGateway, "Api Gateway", "", "Маршрутизация запросов, управление доступом")
+  SystemQueue(RabbitMQ, "RabbitMQ", "Отправка очередей на систему уведомлений")
+  SystemQueue(Kafka, "Kafka", "Запись логов состояний датчиков")
 }
 
-'Telemetry Service
-Container_Boundary(telemetryService, "Telemetry Microservice") {
-    Component(telemetryProcessor, "TelemetryProcessor", "Service", "Processes telemetry data from devices and sensors")
-    Component(kafkaConsumerTelemetry, "KafkaConsumer", "Kafka Consumer", "Consumes telemetry data from Kafka")
-    Component(telemetryDatabase, "TelemetryDatabase", "Database", "Stores processed telemetry data")
+Container(User, "User") {
+  Component(AuthCrl, "Auth Controller", "Java", "Авторизация и аутентификация юзеров")
+  Component(userDB, "User DB", "PostgreSQL", "Данные владельцев домов")
 }
 
-'Devices Service
-Container_Boundary(devicesService, "Devices Microservice") {
-    Component(devicesManager, "DevicesManager", "Service", "Manages device states and sends commands")
-    Component(kafkaDevicesConsumer, "KafkaConsumer", "Kafka Consumer", "Consumes device commands from Kafka")
-    Component(kafkaDevicesProducer, "KafkaProducer", "Kafka Producer", "Publishes device state updates to Kafka")
-    Component(devicesDatabase, "DevicesDatabase", "Database", "Stores device information and state")
+Container(Home, "Home") {
+  Component(HomeCrl, "Home Controller", "Java","Модель дома")
+  Component(homeDB, "Home DB", "MongoDB", "Данные домов")
 }
 
-'Kafka
-System_Ext(kafka, "Kafka", "Event Streaming Platform", "Facilitates communication between services")
+Container(Device, "Device") {
+  Component(DeviceCrl, "Device Controller", "Java", "Управление устройствами")
+  Component(deviceDB, "Device DB", "PostgreSQL", "БД управления устройствами")
+}
 
-'Relationships between components
-Rel(monitoringController, telemetryUI, "Fetches and displays telemetry data")
-Rel(deviceControlUI, monitoringController, "Sends device control commands via KafkaProducer")
-Rel(kafkaProducer, kafka, "Sends device commands and requests")
-Rel(kafka, kafkaConsumerMonolith, "Receives telemetry and device updates")
-Rel(kafkaConsumerMonolith, monitoringController, "Processes telemetry and device state updates")
-Rel(kafka, kafkaConsumerTelemetry, "Receives telemetry data")
-Rel(kafkaConsumerTelemetry, telemetryProcessor, "Processes and stores telemetry data")
-Rel(telemetryProcessor, telemetryDatabase, "Stores processed telemetry")
-Rel(kafka, kafkaDevicesConsumer, "Receives device control commands")
-Rel(kafkaDevicesConsumer, devicesManager, "Processes device control commands")
-Rel(devicesManager, kafkaDevicesProducer, "Publishes device state updates")
-Rel(kafkaDevicesProducer, kafka, "Sends device state updates to Kafka")
-Rel(devicesManager, devicesDatabase, "Stores device states")
+Container(Telemetry, "Telemetry") {
+  Component(TelemetryCrl, "Telemetry Controller", "Java", "Управление телеметрией")
+  Component(TelemetryDB, "Telemetry DB", "PostgreSQL", "Состояния датчиков, замеры, статусы")
+  Component(S3, "VideoDB", "S3", "Хранение видеозаписей")
+}
+
+Container(AlertIn, "AlertIn") {
+  Component(AlertCrl, "Alert Controller", "Java", "Уведомление юзеров о статусах")
+}
+
+System_Boundary(DeviceOut, "DeviceOut") {
+  System_Ext(Devices, "Devices", "Устройства управления системами дома")
+}
+
+System_Boundary(AlertOut, "AlertOut") {
+  System_Ext(Alert, "Alerts", "Отправка push и sms")
+}
+
+Rel(WebApps,ApiGateway,"Запросы на выполнение действий")
+
+Rel(ApiGateway,HomeCrl, "REST", "Запросы на получение информации по комнатам")
+Rel_R(ApiGateway,AuthCrl, "REST","Проверка прав и аутентицификация юзера")
+Rel_D(ApiGateway,DeviceCrl, "REST", "Запросы на изменение состояний устройств")
+Rel_D(ApiGateway, TelemetryCrl,"Reads/Writes user data")
+
+Rel_R(AuthCrl,userDB, "SQL","Сверяет логины и пароли")
+Rel_L(HomeCrl,homeDB, "SQL", "Чтение/запись данных")
+Rel_L(DeviceCrl,deviceDB, "SQL", "Чтение/запись данных")
+Rel_D(TelemetryCrl, TelemetryDB, "SQL", "Чтение/запись данных")
+Rel_D(TelemetryCrl, S3, "", "Читает/редактирует данные")
+
+Rel_L(DeviceCrl, TelemetryCrl, "REST", "Запрашивает данные по состояниям")
+
+Rel_D(DeviceCrl, RabbitMQ, "REST", "Отправляет изменные статусы устройств")
+Rel_U(AlertCrl, RabbitMQ, "ASync", "Вычитывает сообщения")
+Rel_L(Devices, Kafka, "Async", "Запись логов событий и состояний")
+Rel_L(TelemetryCrl, Kafka, "Async", "Забирает данные логов")
+
+
+Rel(DeviceCrl, Devices, "", "Задачи на действия")
+Rel_D(AlertCrl, Alert, "REST", "Отправляет уведомления")
+
+
 
 @enduml

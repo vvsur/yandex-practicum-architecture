@@ -1,21 +1,23 @@
 @startuml
-!define C4Context
-!define C4PlantUML https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
-!includeurl C4PlantUML
+title SmartHome Context Diagram
 
-title Smart Home System - System Context Diagram
+top to bottom direction
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
 
-'Participants
-Person(user, "User", "Interacts with the smart home system to monitor and control appliances")
-System(smartHomeSystem, "Smart Home System", "Monolithic application to manage smart home devices")
+Person(user, "User", "Владелец дома, юзер системы")
+Person(worker, "Worker", "Устанавливает систему, датчики")
 
-'External systems
-System_Ext(sensor, "Temperature Sensors", "Sensors to provide current temperature data")
-System_Ext(heatingSystem, "Heating System", "Heating system controlled by the application")
+System(SmartHome, "SmartHome System", "Система умного дома, управление отоплением")
 
-'Relationships
-Rel(user, smartHomeSystem, "Monitors and controls devices via web interface")
-Rel(smartHomeSystem, sensor, "Reads current temperature data from sensors", "REST API")
-Rel(smartHomeSystem, heatingSystem, "Sends commands to control heating system", "REST API")
+System_Ext(heatingSystem, "Heating System", "Система отопления")
+System_Ext(sensor, "Temperature Sensor", "Датчики температуры")
+
+
+Rel(user, SmartHome, "Проверяет и задает температуру")
+Rel(worker,sensor,"Устанавливает датчики")
+Rel(worker,SmartHome,"Добавляет новый датчик, проверяет корректность работы")
+Rel(SmartHome,heatingSystem,"Управляет температурой в доме")
+Rel(sensor,SmartHome,"Передает показания")
+
 
 @enduml
