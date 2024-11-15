@@ -1,0 +1,39 @@
+@startuml
+title SmartHome Container Diagram
+
+top to bottom direction
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Person(user, "User", "Владелец дома, юзер системы")
+Person(admin, "Admin", "Сотрудник SmartHome")
+
+System(SmartHome, "SmartHome System", "Система умного дома")
+
+System_Boundary(DeviceOut, "DeviceOut") {
+  System_Ext(Devices, "Devices", "Устройства управления системами дома")
+}
+
+System_Boundary(AlertOut, "AlertOut") {
+  System_Ext(Alert, "Alerts", "Отправка push и sms")
+}
+
+Container_Boundary(SmartHome, "SmartHome System") {
+  Container(WebApps, "Web Application", "", "Обрабатывает запросы, взаимодействует с User")
+  Container(Monitoring, "Monitoring System", "Grafana", "Сбор данных, выявление проблем и ошибок")
+  Container(Api, "API Application", "Java", "Управляет системами и сбором данных")
+  Container(Database, "Databases", "", "Хранение и обработка состояний, устройств,датчиков")
+}
+
+Rel_D(user, WebApps, "Отправляет запросы на управлением домом")
+Rel_D(admin, Monitoring,"Следит за состоянием системы SmartHome")
+Rel_D(WebApps, Api,"Запросы на управление домом")
+Rel_D(Monitoring, Api,"Собирает данные о состоянии системы")
+
+Rel_D(Api,Database,"Чтение/запись данных")
+Rel_R(Devices, Api, "Отправка телеметрии")
+
+Rel_L(Api,Devices,"Управляет устройствами в доме")
+Rel_R(Api,Alert,"Отправляет уведомления")
+
+
+@enduml

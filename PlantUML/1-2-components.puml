@@ -1,0 +1,79 @@
+@startuml
+title SmartHome Component Diagram
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+
+System_Boundary(SmartHome, "SmartHome System") {
+  Container(WebApps, "Web Application", "", "Обрабатывает запросы, взаимодействует с User")
+  Container(User, "User", "", "Управление Юзерами")
+  Container(Home, "Home", "", "Управление характеристиками дома")
+  Container(Device, "Device", "", "Управление устройствами")
+  Container(Telemetry, "Telemetry", "", "Управление телеметрией")
+  Container(AlertIn, "Alert", "", "Управление уведомлениями")
+  Component_Ext(ApiGateway, "Api Gateway", "", "Маршрутизация запросов, управление доступом")
+  SystemQueue(RabbitMQ, "RabbitMQ", "Отправка очередей на систему уведомлений")
+  SystemQueue(Kafka, "Kafka", "Запись логов состояний датчиков")
+}
+
+Container(User, "User") {
+  Component(AuthCrl, "Auth Controller", "Java", "Авторизация и аутентификация юзеров")
+  Component(userDB, "User DB", "PostgreSQL", "Данные владельцев домов")
+}
+
+Container(Home, "Home") {
+  Component(HomeCrl, "Home Controller", "Java","Модель дома")
+  Component(homeDB, "Home DB", "MongoDB", "Данные домов")
+}
+
+Container(Device, "Device") {
+  Component(DeviceCrl, "Device Controller", "Java", "Управление устройствами")
+  Component(deviceDB, "Device DB", "PostgreSQL", "БД управления устройствами")
+}
+
+Container(Telemetry, "Telemetry") {
+  Component(TelemetryCrl, "Telemetry Controller", "Java", "Управление телеметрией")
+  Component(TelemetryDB, "Telemetry DB", "PostgreSQL", "Состояния датчиков, замеры, статусы")
+  Component(S3, "VideoDB", "S3", "Хранение видеозаписей")
+}
+
+Container(AlertIn, "AlertIn") {
+  Component(AlertCrl, "Alert Controller", "Java", "Уведомление юзеров о статусах")
+}
+
+System_Boundary(DeviceOut, "DeviceOut") {
+  System_Ext(Devices, "Devices", "Устройства управления системами дома")
+}
+
+System_Boundary(AlertOut, "AlertOut") {
+  System_Ext(Alert, "Alerts", "Отправка push и sms")
+}
+
+Rel(WebApps,ApiGateway,"Запросы на выполнение действий")
+
+Rel(ApiGateway,HomeCrl, "REST", "Запросы на получение информации по комнатам")
+Rel_R(ApiGateway,AuthCrl, "REST","Проверка прав и аутентицификация юзера")
+Rel_D(ApiGateway,DeviceCrl, "REST", "Запросы на изменение состояний устройств")
+Rel_D(ApiGateway, TelemetryCrl,"Reads/Writes user data")
+
+Rel_R(AuthCrl,userDB, "SQL","Сверяет логины и пароли")
+Rel_L(HomeCrl,homeDB, "SQL", "Чтение/запись данных")
+Rel_L(DeviceCrl,deviceDB, "SQL", "Чтение/запись данных")
+Rel_D(TelemetryCrl, TelemetryDB, "SQL", "Чтение/запись данных")
+Rel_D(TelemetryCrl, S3, "", "Читает/редактирует данные")
+
+Rel_L(DeviceCrl, TelemetryCrl, "REST", "Запрашивает данные по состояниям")
+
+Rel_D(DeviceCrl, RabbitMQ, "REST", "Отправляет изменные статусы устройств")
+Rel_U(AlertCrl, RabbitMQ, "ASync", "Вычитывает сообщения")
+Rel_L(Devices, Kafka, "Async", "Запись логов событий и состояний")
+Rel_L(TelemetryCrl, Kafka, "Async", "Забирает данные логов")
+
+
+Rel(DeviceCrl, Devices, "", "Задачи на действия")
+Rel_D(AlertCrl, Alert, "REST", "Отправляет уведомления")
+
+
+
+@enduml
